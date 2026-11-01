@@ -25,6 +25,22 @@ resource "aws_iam_role_policy_attachment" "ssm_managed_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy" "jenkins_secret_read" {
+  name = "${local.org}-${local.project}-${local.env}-jenkins-secret-read"
+  role = aws_iam_role.role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = "arn:aws:secretsmanager:${var.aws-region}:*:secret:${var.jenkins_secret_name}*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "iam-instance-profile" {
   name = "${local.org}-${local.project}-${local.env}-instance-profile"
   role = aws_iam_role.role.name

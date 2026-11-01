@@ -14,3 +14,7 @@ variable "ec2_instance_type" {
 }
 variable "ec2_volume_size" {}
 variable "ec2_volume_type" {}
+variable "jenkins_secret_name" {
+  type    = string
+  default = "jenkins/admin/password"
+}
