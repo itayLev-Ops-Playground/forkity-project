@@ -17,7 +17,7 @@ resource "aws_instance" "ec2" {
   depends_on             = [aws_iam_role_policy.jenkins_secret_read]
   user_data = local.instance_names[count.index] == "jenkins-server" ? replace(
     replace(
-      file("../scripts/jenkins-user-data.sh"),
+      templatefile("${path.module}/../scripts/jenkins-user-data.sh"),
       "__AWS_REGION__",
       var.aws-region
     ),
