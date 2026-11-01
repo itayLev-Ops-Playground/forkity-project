@@ -17,14 +17,13 @@ resource "aws_instance" "ec2" {
   depends_on             = [aws_iam_role_policy.jenkins_secret_read]
   user_data = local.instance_names[count.index] == "jenkins-server" ? replace(
     replace(
-      templatefile("${path.module}/../scripts/jenkins-user-data.sh"),
+      file("${path.module}/jenkins-user-data.sh"),
       "__AWS_REGION__",
       var.aws-region
     ),
     "__JENKINS_SECRET_NAME__",
     var.jenkins_secret_name
   ) : null
-  user_data_replace_on_change = local.instance_names[count.index] == "jenkins-server"
 
   lifecycle {
     precondition {
