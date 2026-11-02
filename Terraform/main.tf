@@ -17,7 +17,8 @@ resource "aws_instance" "ec2" {
   user_data = local.instance_names[count.index] == "jenkins-server" ? join("\n", [
     file("${path.module}/scripts/jenkins-install.sh"),
     file("${path.module}/scripts/docker-install.sh"),
-    file("${path.module}/scripts/post-install.sh")
+    file("${path.module}/scripts/post-install.sh"),
+    file("${path.module}/scripts/install_jenkins_plugins.sh")
   ]) : null
 
   root_block_device {
