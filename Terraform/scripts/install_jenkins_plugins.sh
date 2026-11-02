@@ -4,10 +4,10 @@
 set -e
 
 # Ensure the script is run with sudo privileges to read the initialAdminPassword file
-if [ "$EUID" -ne 0 ]; then
-  echo "❌ Please run this script with sudo (e.g., sudo ./install_jenkins_plugins.sh)"
-  exit 1
-fi
+# if [ "$EUID" -ne 0 ]; then
+#   echo "❌ Please run this script with sudo (e.g., sudo ./install_jenkins_plugins.sh)"
+#   exit 1
+# fi
 
 # ==========================================
 # CONFIGURATION
