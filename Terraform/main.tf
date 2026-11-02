@@ -14,23 +14,11 @@ resource "aws_instance" "ec2" {
   instance_type          = var.ec2_instance_type[count.index]
   iam_instance_profile   = aws_iam_instance_profile.iam-instance-profile.name
   vpc_security_group_ids = [aws_security_group.default-ec2-sg.id]
-  depends_on             = [aws_iam_role_policy.jenkins_secret_read]
-  user_data = local.instance_names[count.index] == "jenkins-server" ? replace(
-    replace(
-      file("${path.module}/jenkins-user-data.sh"),
-      "__AWS_REGION__",
-      var.aws-region
-    ),
-    "__JENKINS_SECRET_NAME__",
-    var.jenkins_secret_name
-  ) : null
-
-  lifecycle {
-    precondition {
-      condition     = local.instance_names[count.index] != "jenkins-server" || var.ec2_instance_type[count.index] == "t3a.xlarge"
-      error_message = "The jenkins-server instance must use t3a.xlarge."
-    }
-  }
+  user_data = local.instance_names[count.index] == "jenkins-server" ? join("\n", [
+    file("${path.module}/scripts/jenkins-install.sh"),
+    file("${path.module}/scripts/docker-install.sh"),
+    file("${path.module}/scripts/post-install.sh")
+  ]) : null
 
   root_block_device {
     volume_size = var.ec2_volume_size
