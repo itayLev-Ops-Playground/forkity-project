@@ -1,2 +1,9 @@
 .terraform*
 terraform.lock.hcl
+forkity-ci-cd/node_modules/
+forkity-ci-cd/dist/
+forkity-ci-cd/backend/data/*.db
+forkity-ci-cd/backend/data/*.db-shm
+forkity-ci-cd/backend/data/*.db-wal
+# forkity-ci-cd/.env
+forkity-ci-cd/docs/ai-chat.md
