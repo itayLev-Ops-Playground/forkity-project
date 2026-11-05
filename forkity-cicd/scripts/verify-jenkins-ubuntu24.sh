@@ -16,7 +16,7 @@ check() {
 }
 
 check "Java 21+" bash -c 'java -version 2>&1 | grep -Eq "version \"(21|2[2-9]|[3-9][0-9])"'
-check "Node.js 22+" bash -c 'node -e "process.exit(Number(process.versions.node.split(\".\")[0]) >= 22 ? 0 : 1)"'
+check "Node.js" bash -c 'node -e "process.exit(Number(process.versions.node.split(\".\")[0]) >= 22 ? 0 : 1)"'
 check "npm" command -v npm
 check "Git" command -v git
 check "Docker CLI" command -v docker
