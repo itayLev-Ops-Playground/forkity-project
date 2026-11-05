@@ -118,6 +118,9 @@ pipeline {
         failure {
             dir('forkity-cicd') {
                 sh 'docker compose logs --no-color --tail=100 || true'
+                sh 'docker compose ps'
+                sh 'docker compose logs backend --tail=200'
+                sh 'docker compose logs db --tail=200'
             }
         }
         always {
