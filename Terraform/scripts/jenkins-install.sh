@@ -33,6 +33,58 @@ printf '%s\n' \
 
 apt-get update
 apt-get install -y jenkins
+
+# ==============================================================================
+# AUTOMATED PLUGIN INSTALLATION CONFIGURATION
+# ==============================================================================
+
+# 1. Skip the Setup Wizard UI screen
+JENKINS_ARGS_DIR="/etc/systemd/system/jenkins.service.d"
+mkdir -p "$JENKINS_ARGS_DIR"
+cat << 'EOF' > "$JENKINS_ARGS_DIR/override.conf"
+[Service]
+Environment="JAVA_OPTS=-Djenkins.install.runSetupWizard=false"
+EOF
+
+systemctl daemon-reload
+
+# 2. Grab the official plug-in installation CLI tool
+PLUGIN_CLI_VERSION="2.13.2"
+curl -fsSL "https://github.com{PLUGIN_CLI_VERSION}/jenkins-plugin-manager-${PLUGIN_CLI_VERSION}.jar" \
+  -o /opt/jenkins-plugin-manager.jar
+
+# 3. Define all standard wizard plugins + SonarQube & Slack dependencies
+PLUGINS=(
+  git
+  github-branch-source
+  workflow-aggregator
+  pipeline-stage-view
+  ws-cleanup
+  timestamper
+  credentials-binding
+  matrix-auth
+  pam-auth
+  ldap
+  ssh-slaves
+  mailer
+  ant
+  gradle
+  maven-plugin
+  sonar
+  slack
+)
+
+echo "Pre-downloading Jenkins plugins and matching dependencies..."
+java -jar /opt/jenkins-plugin-manager.jar \
+  --war /usr/share/java/jenkins.war \
+  --plugin-download-directory /var/lib/jenkins/plugins \
+  --plugins "${PLUGINS[@]}"
+
+# Fix folder ownership permissions for the downloaded components
+chown -R jenkins:jenkins /var/lib/jenkins/plugins
+
+# ==============================================================================
+
 systemctl enable --now jenkins
 
 if ! systemctl is-active --quiet jenkins; then
@@ -41,3 +93,4 @@ if ! systemctl is-active --quiet jenkins; then
 fi
 
 echo "Jenkins is installed and running."
+ 
