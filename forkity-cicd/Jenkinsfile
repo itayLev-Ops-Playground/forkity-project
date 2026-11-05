@@ -123,10 +123,15 @@ pipeline {
                 sh 'docker compose logs db --tail=200'
             }
         }
-        always {
+        success {
             dir('forkity-cicd') {
-                sh 'docker compose ps || true'
+                sh 'docker compose down --volumes --remove-orphans --rmi local'
             }
         }
+        // always {
+        //     dir('forkity-cicd') {
+        //         sh 'docker compose ps || true'
+        //     }
+        // }
     }
 }
