@@ -20,6 +20,13 @@ repository. Allow inbound port 8080 only from trusted networks. Builds need
 outbound HTTPS access to the package repositories and Docker Hub.
 
 The pipeline runs the verification script before each build, then executes
-`npm ci` to install the repository's locked npm dependencies. Run the
-preparation script once as an administrator; it should not run as part of a
-build because it installs system packages and changes host services/users.
+`npm ci` to install the repository's locked npm dependencies. It validates the
+Compose configuration, builds the images, starts the application with
+`docker compose up --build -d`, and checks the frontend on
+`http://127.0.0.1:8080` (or the configured `FORKITY_PORT`). Containers are left
+running after a successful build so the application can be tested from the
+Jenkins host. On failure, recent Compose logs are printed.
+
+Run the preparation script once as an administrator; it should not run as part
+of a build because it installs system packages and changes host
+services/users.
