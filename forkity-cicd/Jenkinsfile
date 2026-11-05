@@ -22,13 +22,13 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Prepare Jenkins agent') {
-            steps {
-                dir('forkity-cicd') {
-                    sh 'bash scripts/prepare-jenkins-ubuntu24.sh'
-                }
-            }
-        }
+        // stage('Prepare Jenkins agent') {
+        //     steps {
+        //         dir('forkity-cicd') {
+        //             sh 'sudo bash scripts/prepare-jenkins-ubuntu24.sh'
+        //         }
+        //     }
+        // }
         stage('Verify Jenkins agent') {
             steps {
                 dir('forkity-cicd') {

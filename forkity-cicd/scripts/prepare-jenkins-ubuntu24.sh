@@ -41,37 +41,38 @@ Signed-By: /etc/apt/keyrings/nodesource.gpg
 EOF
 
 # Docker Engine and the Compose v2 plugin, required by Jenkinsfile.
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-  -o /etc/apt/keyrings/docker.asc
-chmod a+r /etc/apt/keyrings/docker.asc
-cat > /etc/apt/sources.list.d/docker.sources <<EOF
-Types: deb
-URIs: https://download.docker.com/linux/ubuntu
-Suites: ${VERSION_CODENAME}
-Components: stable
-Architectures: $(dpkg --print-architecture)
-Signed-By: /etc/apt/keyrings/docker.asc
-EOF
+# curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+#   -o /etc/apt/keyrings/docker.asc
+# chmod a+r /etc/apt/keyrings/docker.asc
+# cat > /etc/apt/sources.list.d/docker.sources <<EOF
+# Types: deb
+# URIs: https://download.docker.com/linux/ubuntu
+# Suites: ${VERSION_CODENAME}
+# Components: stable
+# Architectures: $(dpkg --print-architecture)
+# Signed-By: /etc/apt/keyrings/docker.asc
+# EOF
 
 # Jenkins LTS signing key and package repository. See the official Jenkins docs.
-curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key \
-  -o /etc/apt/keyrings/jenkins-keyring.asc
-chmod a+r /etc/apt/keyrings/jenkins-keyring.asc
-cat > /etc/apt/sources.list.d/jenkins.list <<'EOF'
-deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/
-EOF
+# curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key \
+#   -o /etc/apt/keyrings/jenkins-keyring.asc
+# chmod a+r /etc/apt/keyrings/jenkins-keyring.asc
+# cat > /etc/apt/sources.list.d/jenkins.list <<'EOF'
+# deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/
+# EOF
 
 apt-get update
-apt-get install -y nodejs docker-ce docker-ce-cli containerd.io \
-  docker-buildx-plugin docker-compose-plugin jenkins
+apt-get install -y nodejs 
+# docker-ce docker-ce-cli containerd.io \
+#  docker-buildx-plugin docker-compose-plugin jenkins
 
-systemctl enable --now docker
-systemctl enable --now jenkins
+# systemctl enable --now docker
+# systemctl enable --now jenkins
 
 # Required for the pipeline's `docker compose` commands. Membership grants
 # root-equivalent access on this machine; only trusted Jenkins jobs should run.
-usermod -aG docker jenkins
-systemctl restart jenkins
+# usermod -aG docker jenkins
+# systemctl restart jenkins
 
 echo
 echo "Installed tool versions:"
@@ -81,16 +82,16 @@ npm --version
 docker --version
 docker compose version
 
-echo
-echo "Jenkins service:"
-systemctl --no-pager --full status jenkins || true
+# echo
+# echo "Jenkins service:"
+# systemctl --no-pager --full status jenkins || true
 
-if [[ -r /var/lib/jenkins/secrets/initialAdminPassword ]]; then
-  echo
-  echo "Jenkins initial administrator password:"
-  cat /var/lib/jenkins/secrets/initialAdminPassword
-fi
+# if [[ -r /var/lib/jenkins/secrets/initialAdminPassword ]]; then
+#   echo
+#   echo "Jenkins initial administrator password:"
+#   cat /var/lib/jenkins/secrets/initialAdminPassword
+# fi
 
-echo
-echo "Setup complete. Open Jenkins on port 8080, complete its first-run setup,"
-echo "then create a Pipeline job pointing to this repository's Jenkinsfile."
+# echo
+# echo "Setup complete. Open Jenkins on port 8080, complete its first-run setup,"
+# echo "then create a Pipeline job pointing to this repository's Jenkinsfile."
