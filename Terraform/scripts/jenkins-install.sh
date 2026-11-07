@@ -23,7 +23,10 @@ apt-get install -y ca-certificates curl fontconfig openjdk-21-jre openssl
 
 install -d -m 0755 /etc/apt/keyrings
 key_tmp="$(mktemp)"
-trap 'rm -f "$key_tmp"' EXIT
+plugin_manager_version=2.16.0
+plugin_manager_sha256=b3e9704f8259ec3d0479703039e2ad5a0a15abb97808ad70d5a59ba2fdd73197
+plugin_manager_tmp="$(mktemp)"
+trap 'rm -f "$key_tmp" "$plugin_manager_tmp"' EXIT
 curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key -o "$key_tmp"
 install -m 0644 "$key_tmp" /etc/apt/keyrings/jenkins-keyring.asc
 
@@ -32,29 +35,25 @@ printf '%s\n' \
   > /etc/apt/sources.list.d/jenkins.list
 
 apt-get update
-apt-get install -y jenkins
 
-# ==============================================================================
-# AUTOMATED PLUGIN INSTALLATION CONFIGURATION
-# ==============================================================================
-
-# 1. Skip the Setup Wizard UI screen
-JENKINS_ARGS_DIR="/etc/systemd/system/jenkins.service.d"
-mkdir -p "$JENKINS_ARGS_DIR"
-cat << 'EOF' > "$JENKINS_ARGS_DIR/override.conf"
+install -d -m 0755 /etc/systemd/system/jenkins.service.d
+cat > /etc/systemd/system/jenkins.service.d/90-disable-setup-wizard.conf <<'EOF'
 [Service]
-Environment="JAVA_OPTS=-Djenkins.install.runSetupWizard=false"
+Environment="JAVA_OPTS=-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false"
 EOF
-
 systemctl daemon-reload
 
-# 2. Grab the official plug-in installation CLI tool
-PLUGIN_CLI_VERSION="2.13.2"
-curl -fsSL "https://github.com{PLUGIN_CLI_VERSION}/jenkins-plugin-manager-${PLUGIN_CLI_VERSION}.jar" \
-  -o /opt/jenkins-plugin-manager.jar
+apt-get install -y jenkins
+systemctl enable jenkins
+systemctl stop jenkins
 
-# 3. Define all standard wizard plugins + SonarQube & Slack dependencies
-PLUGINS=(
+curl -fsSL \
+  "https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/${plugin_manager_version}/jenkins-plugin-manager-${plugin_manager_version}.jar" \
+  -o "$plugin_manager_tmp"
+printf '%s  %s\n' "$plugin_manager_sha256" "$plugin_manager_tmp" | sha256sum --check --status
+install -D -m 0644 "$plugin_manager_tmp" /usr/local/lib/jenkins-plugin-manager.jar
+
+plugins=(
   git
   github-branch-source
   workflow-aggregator
@@ -74,11 +73,11 @@ PLUGINS=(
   slack
 )
 
-echo "Pre-downloading Jenkins plugins and matching dependencies..."
-java -jar /opt/jenkins-plugin-manager.jar \
+runuser -u jenkins -- env JENKINS_HOME=/var/lib/jenkins \
+  java -jar /usr/local/lib/jenkins-plugin-manager.jar \
   --war /usr/share/java/jenkins.war \
   --plugin-download-directory /var/lib/jenkins/plugins \
-  --plugins "${PLUGINS[@]}"
+  --plugins "${plugins[@]}"
 
 admin_password_file=/var/lib/jenkins/secrets/bootstrap-admin-password
 admin_configured_marker=/var/lib/jenkins/secrets/bootstrap-admin-configured
@@ -122,12 +121,7 @@ EOF
   chmod 0644 /var/lib/jenkins/init.groovy.d/10-bootstrap-admin.groovy
 fi
 
-# Fix folder ownership permissions for the downloaded components
-chown -R jenkins:jenkins /var/lib/jenkins/plugins
-
-# ==============================================================================
-
-systemctl enable --now jenkins
+systemctl start jenkins
 
 if ! systemctl is-active --quiet jenkins; then
   echo "Jenkins was installed but its service is not active." >&2
@@ -151,4 +145,3 @@ fi
 echo "Jenkins is installed and running."
 echo "Bootstrap admin username: jenkins"
 echo "Retrieve its password with: sudo cat /var/lib/jenkins/secrets/bootstrap-admin-password"
- 
