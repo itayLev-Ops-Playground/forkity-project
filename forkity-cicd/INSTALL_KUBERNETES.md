@@ -26,13 +26,11 @@ net.ipv4.ip_forward                 = 1
 EOF
 - sudo sysctl --system
 
-???????
-# Install prerequisites
+# Install prerequisites ???????
 - sudo apt update
 sudo apt install -y ca-certificates curl gnupg lsb-release apt-transport-https
 
-???????
-# Add Docker/Containerd repo (using official Docker repo for containerd)
+# Add Docker/Containerd repo (using official Docker repo for containerd) ???????
 - sudo mkdir -p /etc/apt/keyrings
 - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 echo \
@@ -41,14 +39,12 @@ echo \
 - sudo apt update
 - sudo apt install -y containerd.io
 
-???????
-# Generate default configuration and enforce SystemdCgroup
+# Generate default configuration and enforce SystemdCgroup ???????
 - sudo mkdir -p /etc/containerd
 - containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
 - sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
 
-???????
-# Restart and verify containerd
+# Restart and verify containerd ???????
 - sudo systemctl restart containerd
 - sudo systemctl enable containerd
 - sudo systemctl status containerd --no-pager
