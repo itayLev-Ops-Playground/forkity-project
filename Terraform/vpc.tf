@@ -1,6 +1,6 @@
 locals {
   org     = "itay-meni"
-  project = "netflix-clone"
+  project = "forkity"
   env     = var.env
 }
 
