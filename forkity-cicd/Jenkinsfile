@@ -87,9 +87,14 @@ pipeline {
                         echo "$DOCKERHUB_TOKEN" | docker login \
                             --username "$DOCKERHUB_USERNAME" \
                             --password-stdin 
-                        docker push "itaylevops/forkity:forkity-frontend:V.0.${BUILD_NUMBER}" 
-                        docker push "itaylevops/forkity:forkity-backend:V.0.${BUILD_NUMBER}" 
-                        docker push "itaylevops/forkity:postgres:17-alpine:V.0.${BUILD_NUMBER}" 
+                        docker tag forkity-frontend "itaylevops/forkity:forkity-frontend:V.0.${BUILD_NUMBER}"
+                        docker tag forkity-backend "itaylevops/forkity:forkity-backend:V.0.${BUILD_NUMBER}"
+                        docker tag postgres:17-alpine "itaylevops/forkity:postgres:17-alpine:V.0.${BUILD_NUMBER}"
+
+
+                        docker push "itaylevops/forkity:forkity-frontend:V.0.${BUILD_NUMBER}"
+                        docker push "itaylevops/forkity:forkity-backend:V.0.${BUILD_NUMBER}"
+                        docker push "itaylevops/forkity:postgres:17-alpine:V.0.${BUILD_NUMBER}"
                         ''' 
                     } 
                 } 
