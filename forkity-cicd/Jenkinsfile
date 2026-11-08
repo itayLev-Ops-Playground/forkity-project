@@ -87,15 +87,18 @@ pipeline {
                         echo "$DOCKERHUB_TOKEN" | docker login \
                             --username "$DOCKERHUB_USERNAME" \
                             --password-stdin 
-                        docker tag forkity-frontend "itaylevops/forkity:forkity-frontend:V.0.${BUILD_NUMBER}"
-                        docker tag forkity-backend "itaylevops/forkity:forkity-backend:V.0.${BUILD_NUMBER}"
-                        docker tag postgres:17-alpine "itaylevops/forkity:postgres:17-alpine:V.0.${BUILD_NUMBER}"
 
+                        # Tag the images with valid formats (using hyphens instead of extra colons)
+                        docker tag forkity-frontend "itaylevops/forkity:forkity-frontend-V.0.${BUILD_NUMBER}"
+                        docker tag forkity-backend "itaylevops/forkity:forkity-backend-V.0.${BUILD_NUMBER}"
+                        docker tag postgres:17-alpine "itaylevops/forkity:postgres-17-alpine-V.0.${BUILD_NUMBER}"
 
-                        docker push "itaylevops/forkity:forkity-frontend:V.0.${BUILD_NUMBER}"
-                        docker push "itaylevops/forkity:forkity-backend:V.0.${BUILD_NUMBER}"
-                        docker push "itaylevops/forkity:postgres:17-alpine:V.0.${BUILD_NUMBER}"
-                        ''' 
+                        # Push the correctly tagged images to Docker Hub
+                        docker push "itaylevops/forkity:forkity-frontend-V.0.${BUILD_NUMBER}"
+                        docker push "itaylevops/forkity:forkity-backend-V.0.${BUILD_NUMBER}"
+                        docker push "itaylevops/forkity:postgres-17-alpine-V.0.${BUILD_NUMBER}"
+                        '''
+ 
                     } 
                 } 
             } 
