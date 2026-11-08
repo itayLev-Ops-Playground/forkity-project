@@ -117,12 +117,12 @@ pipeline {
         stage('Update Manifest Repository') {
     environment {
         // Store your GitHub PAT safely inside Jenkins Credentials as a secret text
-        GITHUB_CREDENTIALS = credentials('github-token-id') 
+        GITHUB_CREDENTIALS = credentials('frokity-github') 
     }
     steps {
         script {
             // 1. Clone the dedicated manifest repository
-            sh "git clone https://${GITHUB_CREDENTIALS}@https://github.com/itayLev-Ops-Playground/forkity-k8s-manifests.git"
+            sh "git clone https://${GITHUB_CREDENTIALS}@github.com/itayLev-Ops-Playground/forkity-k8s-manifests.git"
             
             dir('forkity-k8s-manifests') {
                 // 1. Update the image tag in the backend deployment file
