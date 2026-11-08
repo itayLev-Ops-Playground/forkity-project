@@ -104,7 +104,7 @@ pipeline {
         stage('Deploy to Kubernetes') { 
             steps { 
                 script { 
-                    dir('forkity-project/forkity-cicd/') { 
+                    dir('forkity-cicd') { 
                         withKubeConfig(credentialsId: 'kubeconfig') { 
                             sh 'kubectl apply -f k8s/forkity.yaml' 
                             sh 'kubectl get svc' 
