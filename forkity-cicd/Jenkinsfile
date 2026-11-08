@@ -105,7 +105,7 @@ pipeline {
             steps { 
                 script { 
                     dir('forkity-project/forkity-cicd/') { 
-                        withKubeConfig(credentialsId: 'k8s') { 
+                        withKubeConfig(credentialsId: 'kubeconfig') { 
                             sh 'kubectl apply -f k8s/forkity.yaml' 
                             sh 'kubectl get svc' 
                             sh 'kubectl get all' 
