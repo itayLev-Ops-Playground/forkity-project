@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label 'ubuntu'
+    }
     options {
         skipDefaultCheckout(true)
         timestamps()
@@ -15,6 +17,12 @@ pipeline {
         stage('Clean workspace') {
             steps {
                 cleanWs()
+            }
+        }
+        stage('Verify Node') {
+            steps {
+                // This prints the Jenkins Node Name and the system hostname
+                echo "Successfully running on Jenkins Node: ${env.NODE_NAME}"
             }
         }
         stage('Checkout') {
