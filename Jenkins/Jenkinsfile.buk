@@ -47,11 +47,11 @@ pipeline{
         }
         stage("Quality Gate") {
             steps {
-                    script {
-                        waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
-                    }
-                } 
-            }
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
+                }
+            } 
+        }
         stage('OWASP Dependency Check') {
             steps {
                 dir('Application-Code') {
@@ -86,7 +86,7 @@ pipeline{
                 }
             }
         }
-        stage("Docker Image Pushing"){
+        stage("Docker Image Pushing") {
             steps{
                 dir('Application-Code') {
                     script{

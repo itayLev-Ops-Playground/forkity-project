@@ -113,8 +113,37 @@ pipeline {
                     } 
                 } 
             } 
-        } 
-    } 
+        }
+        stage('Update Manifest Repository') {
+    environment {
+        // Store your GitHub PAT safely inside Jenkins Credentials as a secret text
+        GITHUB_CREDENTIALS = credentials('github-token-id') 
+    }
+    steps {
+        script {
+            // 1. Clone the dedicated manifest repository
+            sh "git clone https://${GITHUB_CREDENTIALS}@https://github.com/itayLev-Ops-Playground/forkity-k8s-manifests.git"
+            
+            dir('forkity-k8s-manifests') {
+                // 1. Update the image tag in the backend deployment file
+                sh "sed -i 's|image: .*/forkity-backend-.*|image: itaylevops/forkity-backend-V.0.${BUILD_NUMBER}|g' backend-deploy.yaml"
+                
+                // 2. Update the image tag in the frontend deployment file
+                sh "sed -i 's|image: .*/forkity-frontend-.*|image: itaylevops/forkity-frontend-V.0.${BUILD_NUMBER}|g' frontend-deploy.yaml"
+                
+                // 3. Commit and push back to your config repository
+                sh "git config user.name 'Jenkins CI'"
+                sh "git config user.email 'jenkins@yourcompany.com'"
+                sh "git add backend-deploy.yaml frontend-deploy.yaml"
+                sh "git commit -m 'chore: upgrade frontend and backend images to build V.0.${BUILD_NUMBER}'"
+                sh "git push origin master"
+            }
+
+        }
+    }
+}
+    }
+    
     post { 
         failure { 
             dir('forkity-cicd') { 
