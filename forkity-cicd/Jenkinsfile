@@ -103,13 +103,17 @@ pipeline {
         }
         stage('Deploy K8s Secret') {
             steps {
-                // Retrieves the secret text matching your Jenkins ID 'POSTGRES_PASSWORD'
-                withCredentials([string(credentialsId: 'POSTGRES_PASSWORD', variable: 'PASS')]) {
-                    sh """
-                        kubectl create secret generic db-secret \
-                        --from-literal=POSTGRES_PASSWORD='${PASS}' \
-                        --dry-run=client -o yaml | kubectl apply -f -
-                    """
+                // 1. Wrap with KubeConfig so kubectl can reach your actual cluster
+                withKubeConfig(credentialsId: 'kubeconfig') {
+                    // 2. Retrieve your password
+                    withCredentials([string(credentialsId: 'POSTGRES_PASSWORD', variable: 'PASS')]) {
+                        // 3. Use single quotes (''') to pass $PASS natively to the shell
+                        sh '''
+                            kubectl create secret generic db-secret \
+                            --from-literal=POSTGRES_PASSWORD="$PASS" \
+                            --dry-run=client -o yaml | kubectl apply -f -
+                        '''
+                    }
                 }
             }
         }
