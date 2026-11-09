@@ -1,0 +1,199 @@
+pipeline {
+    agent { label 'ubuntu' }
+    tools {
+        nodejs 'nodejs'
+    }
+    options {
+        skipDefaultCheckout(true)
+        timestamps()
+        disableConcurrentBuilds()
+    }
+    environment {
+        SCANNER_HOME = tool 'sonar-server'
+        POSTGRES_DB = 'forkity'
+        POSTGRES_USER = 'forkity'
+        POSTGRES_PASSWORD = credentials('POSTGRES_PASSWORD')
+        // '7ccc9610b6a4db9b2d6506bcdc7204e1bb01fa097245292824ee09f271e68010'
+        FORKITY_PORT = '9090'
+    }
+    stages {
+        stage('Clean workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('Verify Node') {
+            steps {
+                echo "Successfully running on Jenkins Node: ${env.NODE_NAME}"
+            }
+        }
+        stage('Checkout from Git') {
+            steps {
+                git branch: 'master', url: 'https://github.com/itayLev-Ops-Playground/forkity-project.git'
+            }
+        }
+        stage('Install dependencies') {
+            steps {
+                dir('forkity-cicd') {
+                    sh 'npm ci'
+                }
+            }
+        }
+        stage('Build frontend') {
+            steps {
+                dir('forkity-cicd') {
+                    sh 'npm run build'
+                }
+            }
+        }
+        stage('Prepare Compose environment') {
+            steps {
+                dir('forkity-cicd') {
+                    sh '''
+                    if [ ! -f .env ]; then
+                        printf '%s\n' \
+                        "POSTGRES_DB=${POSTGRES_DB}" \
+                        "POSTGRES_USER=${POSTGRES_USER}" \
+                        "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
+                        "FORKITY_PORT=${FORKITY_PORT}" > .env
+                    fi
+                    '''
+                }
+            }
+        }
+        stage('Validate Compose') {
+            steps {
+                dir('forkity-cicd') {
+                    sh 'docker compose config --quiet'
+                }
+            }
+        }
+        stage('Build container images') {
+            steps {
+                dir('forkity-cicd') {
+                    sh 'docker compose build'
+                }
+            }
+        }
+        stage('Docker Image Pushing') {
+            steps {
+                dir('forkity-cicd') {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    )]) {
+                        sh '''
+                        set -eu
+                        echo "$DOCKERHUB_TOKEN" | docker login \
+                            --username "$DOCKERHUB_USERNAME" \
+                            --password-stdin
+
+                        # Tag the images with valid formats (using hyphens instead of extra colons)
+                        docker tag forkity-frontend "itaylevops/forkity:frontend-V.0.${BUILD_NUMBER}"
+                        docker tag forkity-backend "itaylevops/forkity:backend-V.0.${BUILD_NUMBER}"
+
+                        # Push the correctly tagged images to Docker Hub
+                        docker push "itaylevops/forkity:frontend-V.0.${BUILD_NUMBER}"
+                        docker push "itaylevops/forkity:backend-V.0.${BUILD_NUMBER}"
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Deploy K8s Secret') {
+            steps {
+                // 1. Wrap with KubeConfig so kubectl can reach your actual cluster
+                withKubeConfig(credentialsId: 'kubeconfig') {
+                    // 2. Retrieve your password
+                    withCredentials([string(credentialsId: 'POSTGRES_PASSWORD', variable: 'PASS')]) {
+                        // 3. Use single quotes (''') to pass $PASS natively to the shell
+                        sh '''
+                            kubectl create secret generic db-secret \
+                            --from-literal=POSTGRES_PASSWORD="$PASS" \
+                            --dry-run=client -o yaml | kubectl apply -f -
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    dir('forkity-cicd') {
+                        withKubeConfig(credentialsId: 'kubeconfig') {
+                            sh 'kubectl apply -f k8s/forkity.yaml'
+                            sh 'kubectl get svc'
+                            sh 'kubectl get all'
+                        }
+                    }
+                }
+            }
+        }
+        stage('Update Manifest Repository') {
+            environment {
+                // Store your GitHub PAT safely inside Jenkins Credentials as a secret text
+                GITHUB_CREDENTIALS = credentials('frokity-github')
+            }
+            steps {
+                script {
+                    // 1. Clone the dedicated manifest repository
+                    sh "git clone https://${GITHUB_CREDENTIALS}@github.com/itayLev-Ops-Playground/forkity-k8s-manifests.git"
+
+                    dir('forkity-k8s-manifests') {
+                        // 1. Update the image tag in the backend deployment file
+                        sh "sed -i 's|image: .*/forkity-backend-.*|image: itaylevops/forkity:backend-V.0.${BUILD_NUMBER}|g' backend-deploy.yaml"
+
+                        // 2. Update the image tag in the frontend deployment file
+                        sh "sed -i 's|image: .*/forkity-frontend-.*|image: itaylevops/forkity:frontend-V.0.${BUILD_NUMBER}|g' frontend-deploy.yaml"
+
+                        // 3. Commit and push back to your config repository
+                        sh "git config user.name 'Jenkins CI'"
+                        sh "git config user.email 'jenkins@yourcompany.com'"
+                        sh 'git add backend-deploy.yaml frontend-deploy.yaml'
+                        sh "git commit -m 'chore: upgrade frontend and backend images to build V.0.${BUILD_NUMBER}'"
+                        sh 'git push origin master'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            dir('forkity-cicd') {
+                sh 'docker compose logs --no-color --tail=100 || true'
+                sh 'docker compose ps'
+                sh 'docker compose logs backend --tail=200'
+                sh 'docker compose logs db --tail=200'
+            }
+        }
+        // success {
+        //     dir('forkity-cicd') {
+        //         sh 'docker compose down --volumes --remove-orphans --rmi local'
+        //     }
+        // }
+        always {
+            dir('forkity-cicd') {
+                sh 'docker compose ps || true'
+            }
+            script {
+                // Dynamically assign color based on build status
+                def slackColor = (currentBuild.result == 'SUCCESS') ? '#00FF00' : (currentBuild.result == 'FAILURE' ? '#FF0000' : '#FFFF00')
+
+                slackSend(
+                    channel: '#forkity-alerts',
+                    color: slackColor,
+                    message: """
+                    *🚀 Jenkins Build Notification*
+                    *Project:* ${env.JOB_NAME}
+                    *Build Number:* #${env.BUILD_NUMBER}
+                    *Status:* *${currentBuild.result ?: 'SUCCESS'}*
+                    *URL:* <${env.BUILD_URL}|Open Build>
+                    ${currentBuild.result == 'SUCCESS' || currentBuild.result == null ? '✅ All steps completed successfully!' : currentBuild.result == 'FAILURE' ? '❌ Build failed. Please check logs.' : '⚠️ Build is unstable or aborted.'}
+                    """.stripIndent()
+                )
+            }
+        }
+    }
+}

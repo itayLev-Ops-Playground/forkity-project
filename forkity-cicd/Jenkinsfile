@@ -13,7 +13,6 @@ pipeline {
         POSTGRES_DB = 'forkity'
         POSTGRES_USER = 'forkity'
         POSTGRES_PASSWORD = credentials('POSTGRES_PASSWORD')
-        // '7ccc9610b6a4db9b2d6506bcdc7204e1bb01fa097245292824ee09f271e68010'
         FORKITY_PORT = '9090'
     }
     stages {
@@ -89,11 +88,9 @@ pipeline {
                             --username "$DOCKERHUB_USERNAME" \
                             --password-stdin
 
-                        # Tag the images with valid formats (using hyphens instead of extra colons)
                         docker tag forkity-frontend "itaylevops/forkity:frontend-V.0.${BUILD_NUMBER}"
                         docker tag forkity-backend "itaylevops/forkity:backend-V.0.${BUILD_NUMBER}"
 
-                        # Push the correctly tagged images to Docker Hub
                         docker push "itaylevops/forkity:frontend-V.0.${BUILD_NUMBER}"
                         docker push "itaylevops/forkity:backend-V.0.${BUILD_NUMBER}"
                         '''
@@ -103,11 +100,8 @@ pipeline {
         }
         stage('Deploy K8s Secret') {
             steps {
-                // 1. Wrap with KubeConfig so kubectl can reach your actual cluster
                 withKubeConfig(credentialsId: 'kubeconfig') {
-                    // 2. Retrieve your password
                     withCredentials([string(credentialsId: 'POSTGRES_PASSWORD', variable: 'PASS')]) {
-                        // 3. Use single quotes (''') to pass $PASS natively to the shell
                         sh '''
                             kubectl create secret generic db-secret \
                             --from-literal=POSTGRES_PASSWORD="$PASS" \
@@ -131,28 +125,45 @@ pipeline {
             }
         }
         stage('Update Manifest Repository') {
-            environment {
-                // Store your GitHub PAT safely inside Jenkins Credentials as a secret text
-                GITHUB_CREDENTIALS = credentials('frokity-github')
-            }
             steps {
                 script {
-                    // 1. Clone the dedicated manifest repository
-                    sh "git clone https://${GITHUB_CREDENTIALS}@github.com/itayLev-Ops-Playground/forkity-k8s-manifests.git"
+                    // Safe injection handling for Git URLs containing tokens/passwords
+                    withCredentials([usernamePassword(
+                        credentialsId: 'frokity-github', 
+                        usernameVariable: 'GH_USER', 
+                        passwordVariable: 'GH_TOKEN'
+                    )]) {
+                        
+                        // Clean up any stale directory from a previous incomplete run
+                        sh 'rm -rf forkity-k8s-manifests'
+                        
+                        // Clone using the securely injected token
+                        sh "git clone https://${GH_TOKEN}@github.com/itayLev-Ops-Playground/forkity-k8s-manifests.git"
 
-                    dir('forkity-k8s-manifests') {
-                        // 1. Update the image tag in the backend deployment file
-                        sh "sed -i 's|image: .*/forkity-backend-.*|image: itaylevops/forkity:backend-V.0.${BUILD_NUMBER}|g' backend-deploy.yaml"
+                        dir('forkity-k8s-manifests') {
+                            // Update the image tags inside the files
+                            sh "sed -i 's|image: .*/forkity-backend-.*|image: itaylevops/forkity:backend-V.0.${BUILD_NUMBER}|g' backend-deploy.yaml"
+                            sh "sed -i 's|image: .*/forkity-frontend-.*|image: itaylevops/forkity:frontend-V.0.${BUILD_NUMBER}|g' frontend-deploy.yaml"
 
-                        // 2. Update the image tag in the frontend deployment file
-                        sh "sed -i 's|image: .*/forkity-frontend-.*|image: itaylevops/forkity:frontend-V.0.${BUILD_NUMBER}|g' frontend-deploy.yaml"
-
-                        // 3. Commit and push back to your config repository
-                        sh "git config user.name 'Jenkins CI'"
-                        sh "git config user.email 'jenkins@yourcompany.com'"
-                        sh 'git add backend-deploy.yaml frontend-deploy.yaml'
-                        sh "git commit -m 'chore: upgrade frontend and backend images to build V.0.${BUILD_NUMBER}'"
-                        sh 'git push origin master'
+                            // Safe concurrent commit and push logic
+                            sh '''
+                                git config user.name "Jenkins CI"
+                                git config user.email "jenkins@yourcompany.com"
+                                git add backend-deploy.yaml frontend-deploy.yaml
+                                
+                                # Only commit if there are actual diff changes to prevent empty commit errors
+                                if ! git diff-index --quiet HEAD --; then
+                                    git commit -m "chore: upgrade frontend and backend images to build V.0.${BUILD_NUMBER} [skip ci]"
+                                    
+                                    # Crucial step: pull down upstream changes and rebase your commit on top
+                                    git pull --rebase origin master
+                                    
+                                    git push origin master
+                                else
+                                    echo "No manifest changes detected. Skipping push."
+                                fi
+                            '''
+                        }
                     }
                 }
             }
@@ -168,17 +179,11 @@ pipeline {
                 sh 'docker compose logs db --tail=200'
             }
         }
-        // success {
-        //     dir('forkity-cicd') {
-        //         sh 'docker compose down --volumes --remove-orphans --rmi local'
-        //     }
-        // }
         always {
             dir('forkity-cicd') {
                 sh 'docker compose ps || true'
             }
             script {
-                // Dynamically assign color based on build status
                 def slackColor = (currentBuild.result == 'SUCCESS') ? '#00FF00' : (currentBuild.result == 'FAILURE' ? '#FF0000' : '#FFFF00')
 
                 slackSend(
