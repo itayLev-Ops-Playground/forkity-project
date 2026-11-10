@@ -142,8 +142,8 @@ pipeline {
 
                         dir('forkity-k8s-manifests') {
                             // Update the image tags inside the files
-                            sh "sed -i 's|image: .*/forkity-backend-.*|image: itaylevops/forkity:backend-V.0.${BUILD_NUMBER}|g' backend-deploy.yaml"
-                            sh "sed -i 's|image: .*/forkity-frontend-.*|image: itaylevops/forkity:frontend-V.0.${BUILD_NUMBER}|g' frontend-deploy.yaml"
+                            sh "sed -i 's|image: .*/forkity:backend-.*|image: itaylevops/forkity:backend-V.0.${BUILD_NUMBER}|g' backend-deploy.yaml"
+                            sh "sed -i 's|image: .*/forkity:frontend-.*|image: itaylevops/forkity:frontend-V.0.${BUILD_NUMBER}|g' frontend-deploy.yaml"
 
                             // Safe concurrent commit and push logic
                             sh '''
