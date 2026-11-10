@@ -149,7 +149,7 @@ pipeline {
                             sh '''
                                 git config user.name "Jenkins CI"
                                 git config user.email "jenkins@yourcompany.com"
-                                git add backend-deploy.yaml frontend-deploy.yaml
+                                git add .
                                 
                                 # Only commit if there are actual diff changes to prevent empty commit errors
                                 if ! git diff-index --quiet HEAD --; then
@@ -157,6 +157,8 @@ pipeline {
                                     
                                     # Crucial step: pull down upstream changes and rebase your commit on top
                                     git pull --rebase origin master
+
+                                    
                                     
                                     git push origin master
                                 else
