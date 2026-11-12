@@ -11,5 +11,11 @@ jobs:
 
     steps:
       - name: Trigger Jenkins Pipeline
+        env:
+          WEBHOOK_DATA: ${{ secrets.JENKINS_WEBHOOK }}
         run: |
-          curl -f -X POST "${{ secrets.JENKINS_URL }}/job/${{ secrets.JENKINS_JOB_NAME }}/build?token=${{ secrets.JENKINS_TOKEN }}"
+          JENKINS_URL=$(echo "$WEBHOOK_DATA" | sed -n '1p' | tr -d '\r')
+          JENKINS_JOB=$(echo "$WEBHOOK_DATA" | sed -n '2p' | tr -d '\r')
+          JENKINS_TOKEN=$(echo "$WEBHOOK_DATA" | sed -n '3p' | tr -d '\r')
+
+          curl -f -X POST "${JENKINS_URL}/job/${JENKINS_JOB}/build?token=${JENKINS_TOKEN}"
