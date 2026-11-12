@@ -111,19 +111,20 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    dir('forkity-cicd') {
-                        withKubeConfig(credentialsId: 'kubeconfig') {
-                            sh 'kubectl apply -f k8s/forkity.yaml'
-                            sh 'kubectl get svc'
-                            sh 'kubectl get all'
-                        }
-                    }
-                }
-            }
-        }
+        // stage('Deploy to Kubernetes') {
+        //     steps {
+        //         script {
+        //             dir('forkity-cicd') {
+        //                 withKubeConfig(credentialsId: 'kubeconfig') {
+        //                     // sh 'kubectl apply -f k8s/forkity.yaml'
+        //                     sh 'kubectl apply -f ../../forkity-k8s-manifests/*.yaml'
+        //                     sh 'kubectl get svc'
+        //                     sh 'kubectl get all'
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
         stage('Update Manifest Repository') {
             steps {
                 script {
