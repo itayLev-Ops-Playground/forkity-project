@@ -1,8 +1,8 @@
 # 🍔 Forkity - DevSecOps Project
 
-A complete end-to-end DevSecOps project showcasing how to automate, secure, and monitor infrastructure and applications using modern tools — from Terraform to Kubernetes, Jenkins and everything in between [1].
+A complete end-to-end DevSecOps project showcasing how to automate, secure, and monitor infrastructure and applications using modern tools — from Terraform to Kubernetes, Jenkins and everything in between.
 
-Built to demonstrate real-world DevSecOps workflows for CI/CD, cloud automation, security integration, and observability — all centered around the **Forkity** food discovery application [1]. 🍿
+Built to demonstrate real-world DevSecOps workflows for CI/CD, cloud automation, security integration, and observability — all centered around the **Forkity** food discovery application. 🍿
 
 ---
 
