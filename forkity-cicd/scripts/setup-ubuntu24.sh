@@ -123,3 +123,4 @@ else
 fi
 printf 'Project directory: %s\n' "${PROJECT_DIR}"
 printf 'Useful commands: cd %q && docker compose ps && docker compose logs -f\n' "${PROJECT_DIR}"
+testing jit action with jenkins webhook
