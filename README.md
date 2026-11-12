@@ -22,7 +22,7 @@ This project simulates a real enterprise-grade setup where a React-based Forkity
 
 ---
 
-## 🧩 Directory Structure
+## 🧩 Directory Structure under forkity-cicd
 
 ```text
 .
