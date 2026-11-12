@@ -17,5 +17,8 @@ jobs:
           JENKINS_URL=$(echo "$WEBHOOK_DATA" | sed -n '1p' | tr -d '\r')
           JENKINS_JOB=$(echo "$WEBHOOK_DATA" | sed -n '2p' | tr -d '\r')
           JENKINS_TOKEN=$(echo "$WEBHOOK_DATA" | sed -n '3p' | tr -d '\r')
+          JENKINS_USER=$(echo "$WEBHOOK_DATA" | sed -n '4p' | tr -d '\r')
+          JENKINS_API_TOKEN=$(echo "$WEBHOOK_DATA" | sed -n '5p' | tr -d '\r')
 
-          curl -f -X POST "${JENKINS_URL}/job/${JENKINS_JOB}/build?token=${JENKINS_TOKEN}"
+          curl -f -u "${JENKINS_USER}:${JENKINS_API_TOKEN}" \
+            -X POST "${JENKINS_URL}/job/${JENKINS_JOB}/build?token=${JENKINS_TOKEN}"
