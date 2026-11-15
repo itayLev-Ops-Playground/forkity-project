@@ -38,39 +38,49 @@ pipeline {
                 }
             }
         }
-        stage("SonarQube Analysis") {
-            steps {
-                dir('forkity-cicd') {
-                    withSonarQubeEnv('sonar-server') {
-                        // Run SonarQube scanner using npx (no global install)
-                        sh '''
-                        echo "🔍 Starting SonarQube Analysis..."
-                        npx @sonar/scan \
-                        -Dsonar.projectKey=forkity \
-                        -Dsonar.projectName=forkity \
-                        -Dsonar.sources=frontend/src \
-                        -Dsonar.language=js \
-                        -Dsonar.exclusions=dist/**,node_modules/**,public/** \
-                        -Dsonar.host.url=$SONAR_HOST_URL \
-                        -Dsonar.login=$SONAR_AUTH_TOKEN
-                        '''
+        stage('Security & Quality Analysis') {
+            parallel {
+                stage('SonarQube & Quality Gate') {
+                    stages {
+                        stage('SonarQube Analysis') {
+                            steps {
+                                dir('forkity-cicd') {
+                                    withSonarQubeEnv('sonar-server') {
+                                        // Run SonarQube scanner using npx (no global install)
+                                        sh '''
+                                            echo "🔍 Starting SonarQube Analysis..."
+                                            npx @sonar/scan \
+                                                -Dsonar.projectKey=forkity \
+                                                -Dsonar.projectName=forkity \
+                                                -Dsonar.sources=frontend/src \
+                                                -Dsonar.language=js \
+                                                -Dsonar.exclusions=dist/**,node_modules/**,public/** \
+                                                -Dsonar.host.url=$SONAR_HOST_URL \
+                                                -Dsonar.login=$SONAR_AUTH_TOKEN
+                                        '''
+                                    }
+                                }
+                            }
+                        }
+
+                        stage('Quality Gate') {
+                            steps {
+                                script {
+                                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+                                }
+                            }
+                        }
                     }
                 }
-            }
-        }
-        stage("Quality Gate") {
-            steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
-                }
-            } 
-        }
-        stage('OWASP Dependency Check') {
-            steps {
-                dir('forkity-cicd') {
-                    echo "🔒 Running OWASP Dependency Check..."
-                    dependencyCheck additionalArguments: '--scan ./ --format XML --out . --nvdDatafeed https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{0}.json.gz', odcInstallation: 'owasp-dp-check'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+
+                stage('OWASP Dependency Check') {
+                    steps {
+                        dir('forkity-cicd') {
+                            echo "🔒 Running OWASP Dependency Check..."
+                            dependencyCheck additionalArguments: '--scan ./ --format XML --out . --nvdDatafeed https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{0}.json.gz', odcInstallation: 'owasp-dp-check'
+                            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                        }
+                    }
                 }
             }
         }
@@ -103,6 +113,13 @@ pipeline {
                 }
             }
         }
+        stage('TRIVY FS SCAN') {
+            steps {
+                dir('forkity-cicd') {
+                    sh "trivy fs . > trivyfs.txt"
+                }
+            }
+        }
         stage('Build container images') {
             steps {
                 dir('forkity-cicd') {
@@ -132,6 +149,14 @@ pipeline {
                         '''
                     }
                 }
+            }
+        }
+        stage("TRIVY Image Scan") {
+            steps {
+                sh """
+                    trivy image itaylevops/forkity:frontend-V.0.${BUILD_NUMBER} > trivyimage.txt
+                    trivy image itaylevops/forkity:backend-V.0.${BUILD_NUMBER} >> trivyimage.txt
+                """
             }
         }
         stage('Deploy K8s Secret') {
