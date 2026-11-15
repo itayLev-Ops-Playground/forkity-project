@@ -69,10 +69,7 @@ pipeline {
             steps {
                 dir('forkity-cicd') {
                     echo "🔒 Running OWASP Dependency Check..."
-                    withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                        dependencyCheck additionalArguments: "--scan ./ --format XML --out . --nvdApiKey ${NVD_API_KEY}",
-                                        odcInstallation: 'owasp-dp-check'
-                    }
+                    dependencyCheck additionalArguments: '--scan ./ --format XML --out . --nvdDatafeed https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{0}.json.gz', odcInstallation: 'owasp-dp-check'
                     dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
                 }
             }
