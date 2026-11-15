@@ -58,6 +58,22 @@ pipeline {
                 }
             }
         }
+        stage("Quality Gate") {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
+                }
+            } 
+        }
+        stage('OWASP Dependency Check') {
+            steps {
+                dir('forkity-cicd') {
+                    echo "🔒 Running OWASP Dependency Check..."
+                    dependencyCheck additionalArguments: '--scan ./ --format XML --out .', odcInstallation: 'owasp-dp-check'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
+            }
+        }
         stage('Build frontend') {
             steps {
                 dir('forkity-cicd') {
