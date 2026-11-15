@@ -38,6 +38,26 @@ pipeline {
                 }
             }
         }
+        stage("SonarQube Analysis") {
+            steps {
+                dir('forkity-cicd') {
+                    withSonarQubeEnv('sonar-server') {
+                        // Run SonarQube scanner using npx (no global install)
+                        sh '''
+                        echo "🔍 Starting SonarQube Analysis..."
+                        npx @sonar/scan \
+                        -Dsonar.projectKey=forkity \
+                        -Dsonar.projectName=forkity \
+                        -Dsonar.sources=frontend/src \
+                        -Dsonar.language=js \
+                        -Dsonar.exclusions=dist/**,node_modules/**,public/** \
+                        -Dsonar.host.url=$SONAR_HOST_URL \
+                        -Dsonar.login=$SONAR_AUTH_TOKEN
+                        '''
+                    }
+                }
+            }
+        }
         stage('Build frontend') {
             steps {
                 dir('forkity-cicd') {
