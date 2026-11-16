@@ -159,19 +159,19 @@ pipeline {
                 """
             }
         }
-        stage('Deploy K8s Secret') {
-            steps {
-                withKubeConfig(credentialsId: 'kubeconfig') {
-                    withCredentials([string(credentialsId: 'POSTGRES_PASSWORD', variable: 'PASS')]) {
-                        sh '''
-                            kubectl create secret generic db-secret \
-                            --from-literal=POSTGRES_PASSWORD="$PASS" \
-                            --dry-run=client -o yaml | kubectl apply -f -
-                        '''
-                    }
-                }
-            }
-        }
+        // stage('Deploy K8s Secret') {
+        //     steps {
+        //         withKubeConfig(credentialsId: 'kubeconfig') {
+        //             withCredentials([string(credentialsId: 'POSTGRES_PASSWORD', variable: 'PASS')]) {
+        //                 sh '''
+        //                     kubectl create secret generic db-secret \
+        //                     --from-literal=POSTGRES_PASSWORD="$PASS" \
+        //                     --dry-run=client -o yaml | kubectl apply -f -
+        //                 '''
+        //             }
+        //         }
+        //     }
+        // }
         // stage('Deploy to Kubernetes') {
         //     steps {
         //         script {
