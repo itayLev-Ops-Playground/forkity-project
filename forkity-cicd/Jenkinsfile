@@ -46,7 +46,6 @@ pipeline {
                             steps {
                                 dir('forkity-cicd') {
                                     withSonarQubeEnv('sonar-server') {
-                                        // Run SonarQube scanner using npx (no global install)
                                         sh '''
                                             echo "🔍 Starting SonarQube Analysis..."
                                             npx @sonar/scan \
@@ -159,55 +158,23 @@ pipeline {
                 """
             }
         }
-        // stage('Deploy K8s Secret') {
-        //     steps {
-        //         withKubeConfig(credentialsId: 'kubeconfig') {
-        //             withCredentials([string(credentialsId: 'POSTGRES_PASSWORD', variable: 'PASS')]) {
-        //                 sh '''
-        //                     kubectl create secret generic db-secret \
-        //                     --from-literal=POSTGRES_PASSWORD="$PASS" \
-        //                     --dry-run=client -o yaml | kubectl apply -f -
-        //                 '''
-        //             }
-        //         }
-        //     }
-        // }
-        // stage('Deploy to Kubernetes') {
-        //     steps {
-        //         script {
-        //             dir('forkity-cicd') {
-        //                 withKubeConfig(credentialsId: 'kubeconfig') {
-        //                     // sh 'kubectl apply -f k8s/forkity.yaml'
-        //                     sh 'kubectl apply -f ../../forkity-k8s-manifests/*.yaml'
-        //                     sh 'kubectl get svc'
-        //                     sh 'kubectl get all'
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
         stage('Update Manifest Repository') {
             steps {
                 script {
-                    // Safe injection handling for Git URLs containing tokens/passwords
                     withCredentials([usernamePassword(
                         credentialsId: 'frokity-github', 
                         usernameVariable: 'GH_USER', 
                         passwordVariable: 'GH_TOKEN'
                     )]) {
                         
-                        // Clean up any stale directory from a previous incomplete run
                         sh 'rm -rf forkity-k8s-manifests'
                         
-                        // Clone using the securely injected token
                         sh "git clone https://${GH_TOKEN}@github.com/itayLev-Ops-Playground/forkity-k8s-manifests.git"
 
                         dir('forkity-k8s-manifests') {
-                            // Update the image tags inside the files
                             sh "sed -i 's|image: .*/forkity:backend-.*|image: itaylevops/forkity:backend-V.0.${BUILD_NUMBER}|g' backend-deploy.yaml"
                             sh "sed -i 's|image: .*/forkity:frontend-.*|image: itaylevops/forkity:frontend-V.0.${BUILD_NUMBER}|g' frontend-deploy.yaml"
 
-                            // Safe concurrent commit and push logic
                             sh '''
                                 git config user.name "Jenkins CI"
                                 git config user.email "jenkins@yourcompany.com"
@@ -219,8 +186,6 @@ pipeline {
                                     
                                     # Crucial step: pull down upstream changes and rebase your commit on top
                                     git pull --rebase origin master
-
-                                    
                                     
                                     git push origin master
                                 else
